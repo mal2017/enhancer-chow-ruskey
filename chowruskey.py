@@ -133,7 +133,7 @@ def main():
     intersections(samps)
 
     # call R helper script. if sample mode, rand is same as number of samples.
-    os.system('Rscript r_helper.R %d %d' % (rand,iters))
+    os.system('Rscript r_helper.R %d %d' % (int(rand),int(iters))
 
 if __name__ == '__main__':
     main()
