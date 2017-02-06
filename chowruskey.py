@@ -105,7 +105,7 @@ def main():
         os.sys.exit()
     # determine vars
     directory = options.directory
-    if samples:
+    if options.samples:
         samples = options.samples.split(',')
     rand = options.randomize
     iters = options.iterations
