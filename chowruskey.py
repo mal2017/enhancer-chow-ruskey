@@ -133,7 +133,9 @@ def main():
     intersections(samps)
 
     # call R helper script. if sample mode, rand is same as number of samples.
-    os.system('Rscript r_helper.R %d %d' % (int(rand),int(iters)))
+    # http://stackoverflow.com/questions/4934806/how-can-i-find-scripts-directory-with-python
+    scriptdir = os.path.dirname(os.path.realpath(__file__))
+    os.system('Rscript %s/r_helper.R %d %d' % (scriptdir,int(rand),int(iters)))
 
 if __name__ == '__main__':
     main()
