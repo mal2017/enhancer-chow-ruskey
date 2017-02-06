@@ -100,7 +100,9 @@ def main():
         # random mode and sample/category mode are exclusive
         print('Please either flag --random or --samples.')
         os.sys.exit()
-
+    if not options.randomize and not options.samples:
+        print('Please either flag --random or --samples.')
+        os.sys.exit()
     # determine vars
     directory = options.directory
     samples = options.samples.split(',')
