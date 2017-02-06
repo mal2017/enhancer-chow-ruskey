@@ -18,6 +18,8 @@
 
 import glob
 import os
+from optparse import OptionParser
+import random
 
 def preproc(samps):
     """ preprocess samples by sorting, merging, """
@@ -78,18 +80,57 @@ def intersections(samps):
             f.write(line)
 
 def main():
-    """ wrapper for all components """
+    """ wrapper for all methods. either usable in randomize or sample modes """
+
+    # grab user options
+    parser = OptionParser()
+    parser.add_option("-d","--directory", dest="directory",default=None)
+    parser.add_option("-s","--samples", dest="samples",default=None)
+    parser.add_option("-r", "--random", dest="randomize", default=False, help="include -r [num of samples to randomly sample]")
+    parser.add_option("-i","--iterations", dest="iterations",default=1)
+
+    (options, args) = parser.parse_args()
+
+    # check that options make sense
+    if not options.directory:
+        # output dir is req
+        print('Please select a target directory with -d flag.')
+        os.sys.exit()
+    if all([options.randomize, options.samples]):
+        # random mode and sample/category mode are exclusive
+        print('Please either flag --random or --samples.')
+        os.sys.exit()
+
+    # determine vars
+    directory = options.directory
+    samples = options.samples.split(',')
+    rand = options.randomize
+    iters = options.iterations
+
     # get samples in working dir
-    samps = [x for x in glob.glob('*.bed') if 'reference' not in x]
+    if not rand:
+        # if in sample mode
+        samps = [x for x in glob.glob(directory+'/*.bed') if any([y in x for y in samples])]
+        rand = len(samps)
+    elif rand.isnumeric():
+        # if in random mode
+        samps = [x for x in glob.glob(directory+'/*.bed') if 'reference' not in x]
+        try:
+            samps = random.sample(samps,int(rand))
+        except ValueError:
+            print("n for random selection must be <= beds in working dir.")
+
 
     # create ref file
+    # either for all (in case of random mode) or for those samples specified
+    # see line 113 for filtering step
     preproc(samps)
 
     # find intersections
     intersections(samps)
 
-    # call R helper script
-    os.system('Rscript r_helper.R')
+    # call R helper script. if sample mode, rand is same as number of samples.
+    os.system('Rscript r_helper.R %d %d' % (rand,iters))
 
 if __name__ == '__main__':
     main()

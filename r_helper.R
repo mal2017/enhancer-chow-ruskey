@@ -1,9 +1,14 @@
 
-
+# info on vennerable usage
 # https://rdrr.io/rforge/Vennerable/man/Venn.html#heading-2
 
-
 library(Vennerable)
+
+# get cmd line args
+args <- commandArgs(TRUE)
+sampleSize <- as.numeric(args[1])
+vennVecLen <- 2^sampleSize
+iters <- as.numeric(args[2])
 
 # read table
 df <- read.table('enhancerlists.txt', header = TRUE)
@@ -12,23 +17,22 @@ df <- read.table('enhancerlists.txt', header = TRUE)
 samples <- colnames(df)
 
 # find randoms
-# be careful, this is hardcoded length vector. if the number of random samples
-# changes, this must as well
-subVennVec = rep(0,32)
+#
+subVennVec = rep(0,vennVecLen)
 print(subVennVec)
-for (n in 1:10){
+for (n in 1:iters){
   print(n)
-  subs <- sample(samples,5)
+  subs <- sample(samples,sampleSize)
   subVenn <- Venn(df[,subs])
   subVennVec= subVennVec+c(Weights(subVenn))
 
 }
 
 # get average
-subVennVec <- round(subVennVec/10)
+subVennVec <- round(subVennVec/iters)
 
 # create new Venn object
-meta <- Venn(SetNames=c('A','B','C','D','E'))
+meta <- Venn(SetNames=letters[1:sampleSize])
 Weights(meta) <- subVennVec
 
 # print meta
