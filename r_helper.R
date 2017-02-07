@@ -39,6 +39,6 @@ Weights(meta) <- subVennVec
 meta
 
 # chow ruskey
-pdf('output.pdf')
+pdf(args[3]+'/output.pdf')
 plot(meta,type='ChowRuskey')
 dev.off()

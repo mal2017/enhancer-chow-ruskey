@@ -1,29 +1,11 @@
-# flow:
-# sort all beds in advance of merge operation
-# create reference bed with merged enhancers for all samples
-# name every possible enhancer
-# bedtools intersect -wa -wb ref.bed -b samp1.bed samp2.bed ... sampk.bed >> ...
-# create lists of enhancers present in each sample
-# generate random iterations of 5 samples
-# call R script to create Venn object for each iteration
-# combine Venn objects by averaging
-# plot chow ruskey on meta venn object
-
-# dependencies:
-# python 3
-# bedtools
-# R with Vennerable installed
-# r_helper script
-
-
 import glob
 import os
 from optparse import OptionParser
 import random
 
-def preproc(samps):
+def preproc(samps,directory):
     """ preprocess samples by sorting, merging, """
-
+    os.system("cd %s" %(directory))
     # remove preexisting reference
     print('REMOVING ANY PREEXISTING REFERENCE FILES')
     os.system('rm reference.*')
@@ -43,8 +25,9 @@ def preproc(samps):
     cmd += "bedtools merge > reference.merged.bed"
     os.system(cmd)
 
-def intersections(samps):
+def intersections(samps,directory):
     """ find overlaps for each region """
+    os.system("cd %s" %(directory))
     # find intersections with reference bed
     cmd = 'bedtools intersect -wa -wb -a reference.merged.bed -b '
     cmd += ' '.join(samps) + ' > ref_overlaps.txt'
@@ -78,6 +61,10 @@ def intersections(samps):
         for i in range(pad_to):
             line = '\t'.join([overlap_dict[x][i] for x in samps])+'\n'
             f.write(line)
+    #return overlap_dict
+
+#def bar(overlap_dict,directory):
+
 
 def main():
     """ wrapper for all methods. either usable in randomize or sample modes """
@@ -103,6 +90,7 @@ def main():
     if not options.randomize and not options.samples:
         print('Please either flag --random or --samples.')
         os.sys.exit()
+
     # determine vars
     directory = options.directory
     if options.samples:
@@ -110,7 +98,7 @@ def main():
     rand = options.randomize
     iters = options.iterations
 
-    # get samples in working dir
+    # get names of samples in working dir
     if not rand:
         # if in sample mode
         samps = [x for x in glob.glob(directory+'/*.bed') if any([y in x for y in samples])]
@@ -124,18 +112,19 @@ def main():
             print("n for random selection must be <= beds in working dir.")
 
 
-    # create ref file
-    # either for all (in case of random mode) or for those samples specified
+    # create reference set of regions
+    # either for all (in case of random mode) or only those samples specified
     # see line 113 for filtering step
-    preproc(samps)
+    preproc(samps,directory)
 
-    # find intersections
-    intersections(samps)
+    # find intersections of samples with the reference set
+    intersections(samps,directory)
 
     # call R helper script. if sample mode, rand is same as number of samples.
     # http://stackoverflow.com/questions/4934806/how-can-i-find-scripts-directory-with-python
     scriptdir = os.path.dirname(os.path.realpath(__file__))
-    os.system('Rscript %s/r_helper.R %d %d' % (scriptdir,int(rand),int(iters)))
+    r_cmd = 'Rscript %s/r_helper.R %d %d %s' % (scriptdir,int(rand),int(iters),directory)
+    os.system(r_cmd)
 
 if __name__ == '__main__':
     main()
