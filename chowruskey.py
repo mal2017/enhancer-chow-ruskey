@@ -61,9 +61,29 @@ def intersections(samps,directory):
         for i in range(pad_to):
             line = '\t'.join([overlap_dict[x][i] for x in samps])+'\n'
             f.write(line)
-    #return overlap_dict
+    return overlap_dict
 
-#def bar(overlap_dict,directory):
+def bar(directory):
+    """ get the number of overlaps for each enhancer """
+    os.system("cd %s" %(directory))
+
+    # read
+    with open('ref_overlaps.txt','r') as f:
+        data = f.readlines()
+
+    # get counts
+    count_dict = {}
+    for x in data:
+        line = '-'.join(x.split()[:3])
+        if line not in count_dict:
+            count_dict[line] = 1
+        elif line in count_dict:
+            count_dict[line] = count_dict[line] + 1
+
+    # write
+    with open('ref_counts.txt','w') as g:
+        for x in count_dict:
+            g.write(x+'\t'+str(count_dict[x])+'\n')
 
 
 def main():
@@ -119,6 +139,9 @@ def main():
 
     # find intersections of samples with the reference set
     intersections(samps,directory)
+
+    # get counts for each enhnacer
+    bar(directory)
 
     # call R helper script. if sample mode, rand is same as number of samples.
     # http://stackoverflow.com/questions/4934806/how-can-i-find-scripts-directory-with-python
