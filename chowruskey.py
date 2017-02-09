@@ -131,6 +131,8 @@ def main():
         # if in sample mode
         samps = [x for x in glob.glob('*.bed') if any([y in x for y in samples])]
         print(samps)
+    else:
+        samps = [x for x in glob.glob('*.bed')]
 
     # create reference set of regions
     # either for all (in case of random mode) or only those samples specified
