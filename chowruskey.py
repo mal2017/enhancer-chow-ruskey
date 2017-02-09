@@ -127,7 +127,7 @@ def main():
     os.system('rm *ref_counts.txt')
 
     # get names of samples in working dir
-    if samples:
+    if options.samples:
         # if in sample mode
         samps = [x for x in glob.glob('*.bed') if any([y in x for y in samples])]
         print(samps)
