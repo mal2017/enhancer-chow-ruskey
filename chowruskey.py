@@ -3,38 +3,36 @@ import os
 from optparse import OptionParser
 import random
 
-def preproc(samps,directory):
+#cleanup
+
+
+def preproc(samps,directory,name):
     """ preprocess samples by sorting, merging, """
     os.system("cd %s" %(directory))
-    # remove preexisting reference
-    print('REMOVING ANY PREEXISTING REFERENCE FILES')
-    os.system('rm reference.*')
-    os.system('rm enhancerlists.txt')
-    os.system('rm overlaps.txt')
 
     # sort all of the samples
     print('CREATING REFERENCE FILE')
     for x in samps:
         # append to reference
-        cmd = 'cat %s >> reference.bed' % (x)
+        cmd = 'cat %s >> %s_reference.bed' % (x,name)
         os.system(cmd)
 
     # sort ref bed
     print("MERGING REFERENCE REGIONS")
-    cmd = "sort -k1,1 -k2,2n reference.bed | "
-    cmd += "bedtools merge > reference.merged.bed"
+    cmd = "sort -k1,1 -k2,2n %s_reference.bed | " % (name)
+    cmd += "bedtools merge > %s_reference.merged.bed" % (name)
     os.system(cmd)
 
-def intersections(samps,directory):
+def intersections(samps,directory,name):
     """ find overlaps for each region """
     os.system("cd %s" %(directory))
     # find intersections with reference bed
-    cmd = 'bedtools intersect -wa -wb -a reference.merged.bed -b '
-    cmd += ' '.join(samps) + ' > ref_overlaps.txt'
+    cmd = 'bedtools intersect -wa -wb -a %s_reference.merged.bed -b ' % (name)
+    cmd += ' '.join(samps) + ' > %s_ref_overlaps.txt' % (name)
     os.system(cmd)
 
     # read result of the bedtools operation
-    with open('ref_overlaps.txt','r') as f:
+    with open('%s_ref_overlaps.txt' % (name),'r') as f:
         data = f.readlines()
 
     # make list of enhancers present in each sample
@@ -54,7 +52,7 @@ def intersections(samps,directory):
 
     # write file in columns
     print('WRITING ENHANCER LISTS')
-    with open('enhancerlists.txt','w') as f:
+    with open('%s_enhancerlists.txt' % (name),'w') as f:
         # write header
         f.write('\t'.join(samps)+'\n')
 
@@ -63,12 +61,12 @@ def intersections(samps,directory):
             f.write(line)
     return overlap_dict
 
-def bar(directory):
+def bar(directory,name):
     """ get the number of overlaps for each enhancer """
     os.system("cd %s" %(directory))
 
     # read
-    with open('ref_overlaps.txt','r') as f:
+    with open('%s_ref_overlaps.txt' % (name),'r') as f:
         data = f.readlines()
 
     # get counts
@@ -81,7 +79,7 @@ def bar(directory):
             count_dict[line] = count_dict[line] + 1
 
     # write
-    with open('ref_counts.txt','w') as g:
+    with open('%s_ref_counts.txt' % (name),'w') as g:
         for x in count_dict:
             g.write(x+'\t'+str(count_dict[x])+'\n')
 
@@ -93,6 +91,7 @@ def main():
     parser = OptionParser()
     parser.add_option("-d","--directory", dest="directory",default=None)
     parser.add_option("-s","--samples", dest="samples",default=None)
+    parser.add_option("-c","--categories", dest="categories",default=None)
     parser.add_option("-r", "--random", dest="randomize", default=False, help="include -r [num of samples to randomly sample]")
     parser.add_option("-i","--iterations", dest="iterations",default=1)
 
@@ -103,10 +102,7 @@ def main():
         # output dir is req
         print('Please select a target directory with -d flag.')
         os.sys.exit()
-    if all([options.randomize, options.samples]):
-        # random mode and sample/category mode are exclusive
-        print('Please either flag --random or --samples.')
-        os.sys.exit()
+
     if not options.randomize and not options.samples:
         print('Please either flag --random or --samples.')
         os.sys.exit()
@@ -115,39 +111,53 @@ def main():
     directory = options.directory
     if options.samples:
         samples = options.samples.split(',')
+    if options.categories:
+        cats = options.categories.split(',')
+    else:
+        cats = ['default']
     rand = options.randomize
     iters = options.iterations
 
-    # get names of samples in working dir
-    if not rand:
-        # if in sample mode
-        samps = [x for x in glob.glob(directory+'/*.bed') if any([y in x for y in samples])]
-        rand = len(samps)
-    elif rand.isnumeric():
-        # if in random mode
-        samps = [x for x in glob.glob(directory+'/*.bed') if 'reference' not in x]
-        try:
-            samps = random.sample(samps,int(rand))
-        except ValueError:
-            print("n for random selection must be <= beds in working dir.")
+    # cleanup
+    os.system("cd %s" %(directory))
+    print('REMOVING ANY PREEXISTING REFERENCE FILES')
+    os.system('rm *reference.*')
+    os.system('rm *enhancerlists.txt')
+    os.system('rm *overlaps.txt')
+    os.system('rm *ref_counts.txt')
 
+    # get names of samples in working dir
+    if samples:
+        # if in sample mode
+        samps = [x for x in glob.glob('*.bed') if any([y in x for y in samples])]
+        print(samps)
 
     # create reference set of regions
     # either for all (in case of random mode) or only those samples specified
     # see line 113 for filtering step
-    preproc(samps,directory)
+    for x in cats:
+        print(x)
+        if x != 'default':
+            subset = [y for y in samps if x in y]
+        else:
+            subset = samps
+        if not str(rand).isnumeric():
+            rand = len(subset)
+        # make reference sets
+        preproc(subset,directory,x)
 
-    # find intersections of samples with the reference set
-    intersections(samps,directory)
+        # find intersections of samples with the reference set
+        intersections(subset,directory,x)
 
-    # get counts for each enhnacer
-    bar(directory)
+        # get counts for each enhnacer
+        bar(directory,x)
 
     # call R helper script. if sample mode, rand is same as number of samples.
     # http://stackoverflow.com/questions/4934806/how-can-i-find-scripts-directory-with-python
     scriptdir = os.path.dirname(os.path.realpath(__file__))
-    r_cmd = 'Rscript %s/r_helper.R %d %d %s' % (scriptdir,int(rand),int(iters),directory)
-    os.system(r_cmd)
+    r_cmd = 'Rscript %s/r_helper.R %d %d %s %s %s' % (scriptdir,int(rand),int(iters),directory,','.join(samples),','.join(cats))
+    print(r_cmd)
+#    os.system(r_cmd)
 
 if __name__ == '__main__':
     main()
