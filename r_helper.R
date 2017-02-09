@@ -38,7 +38,7 @@ plotter <- function(rnds,ctg) {
   # get average
   subVennVec <- round(subVennVec/iters)
   covered_enhancers <- sum(subVennVec)
-  subVennVec <- round((subVennVec/covered_enhancers*100,2)\
+  subVennVec <- round((subVennVec/covered_enhancers)*100,2)
 
   # create new Venn object with just letters
   meta <- Venn(SetNames=letters[1:sampleSize])

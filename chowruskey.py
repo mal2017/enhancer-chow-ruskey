@@ -160,7 +160,7 @@ def main():
     scriptdir = os.path.dirname(os.path.realpath(__file__))
     r_cmd = 'Rscript %s/r_helper.R %d %d %s %s %s' % (scriptdir,int(rand),int(iters),directory,','.join(samples),','.join(cats))
     print(r_cmd)
-#    os.system(r_cmd)
+    os.system(r_cmd)
 
 if __name__ == '__main__':
     main()
