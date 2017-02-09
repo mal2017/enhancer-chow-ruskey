@@ -133,7 +133,7 @@ def main():
         print(samps)
     else:
         samps = [x for x in glob.glob('*.bed')]
-        samples = [x.split('_')[0] for x in samps]
+        samples = list(set([x.split('_')[0] for x in samps]))
 
     # create reference set of regions
     # either for all (in case of random mode) or only those samples specified
